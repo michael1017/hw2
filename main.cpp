@@ -17,9 +17,16 @@ DigitalOut Writing(LED2);
 AnalogOut WaveOut(D13);
 AnalogIn WaveIn(D7);
 
-int nowType, nowSelect, WaveType, sample;
+int nowType, nowSelect, sample;
 double increaseDelta, decreaseDelta, data[1300];
 const int S = 9;
+int TypeToFreq[5] = {5, 10 ,50};
+
+//char Animation[4] = {'/', '-', '\\', '|'};
+//int Animation_ctr = 0;
+
+Thread thread1;
+Thread thread2;
 
 void uLCDControl(void);
 void uLCDInit(void);
@@ -28,6 +35,8 @@ void Init(void);
 bool WaveGen(void);
 void ShowData(void);
 void Reset(void);
+//void WaitAnimation(void);
+
 int main(void) {
     int temp;
     Init();
@@ -67,31 +76,23 @@ void uLCDControl(void) {
     uLCD.locate(3,1 + nowType*2);
     uLCD.textbackground_color(0xFFFFFF * nowSelect);
     uLCD.color(0xFF00FF);
-
-    if (nowType == 0) {
-        uLCD.printf("5HZ");
-    } else if (nowType == 1) {
-        uLCD.printf("10HZ");
-    } else if (nowType == 2) {
-        uLCD.printf("50HZ");
-    }
+    uLCD.printf("%dHZ", TypeToFreq[nowType]);
 }
 void uLCDInit(void) {
     uLCD.background_color(0xFFFFFF);
-    uLCD.text_width(2); 
-    uLCD.text_height(2);
+    uLCD.text_width(3); 
+    uLCD.text_height(3);
     uLCD.cls();
 }
 bool BtnControl(void) {
     if (BtnSelect) {
         nowSelect = 1;
-        WaveType = nowType;
         uLCDControl();
-    } else if (BtnUp) {
+    } else if (BtnDown) {
         nowType = nowType == 2 ? 0 : nowType+1;
         nowSelect = 0;
         uLCDControl();
-    } else if (BtnDown) {
+    } else if (BtnUp) {
         nowType = nowType == 0 ? 2 : nowType-1;
         nowSelect = 0;
         uLCDControl();
@@ -104,7 +105,6 @@ bool BtnControl(void) {
 void Init(void) {
     nowType = 1;
     nowSelect = 0;
-    WaveType = nowType;
     increaseDelta = 1.0 / 90;
     decreaseDelta = 1.0 / 10;
     sample = 0;
@@ -112,16 +112,9 @@ void Init(void) {
     uLCDInit();
 }
 bool WaveGen(void) {
-    if (WaveType == 0) {
-        increaseDelta = 1.0 / 180;
-        decreaseDelta = 1.0 / 20;
-    } else if (WaveType == 1) {
-        increaseDelta = 1.0 / 90;
-        decreaseDelta = 1.0 / 10;
-    } else if (WaveType == 2) {
-        increaseDelta = 1.0 / 18;
-        decreaseDelta = 1.0 / 2;
-    }
+    increaseDelta = 1.0 / (1000 / TypeToFreq[nowType] * S / 10);
+    increaseDelta = 1.0 / (1000 / TypeToFreq[nowType] * S / 10);
+
     for (double i=0; i<1; i+= increaseDelta) {
         WaveOut = i;
         ThisThread::sleep_for(1ms);
@@ -143,6 +136,18 @@ void Reset(void) {
     nowSelect = 0;
     Writing = 0;
     sample = 0;
+    uLCD.cls();
     uLCDControl();
 }
-
+/*
+void WaitAnimation(void) {
+    while(1) {
+        if(Writing) {
+            uLCD.locate(3,1 + nowType*2);
+            uLCD.printf("%dHZ %c", TypeToFreq[nowType]);
+            Animation_ctr = Animation_ctr == 3 ? 0 : Animation_ctr + 1;
+            ThisThread::sleep_for(1ms);
+        }
+    }
+}
+*/
